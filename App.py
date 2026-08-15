@@ -30,7 +30,14 @@ def log_workout():
 
     duration = data.get("duration_minutes")
     if duration is not None:
-        if not isinstance(duration, (int, float)) or duration < 0:
+        # Some clients (e.g. n8n, form submissions) send numbers as strings — try to convert.
+        try:
+            duration = float(duration)
+            if duration.is_integer():
+                duration = int(duration)
+        except (TypeError, ValueError):
+            return jsonify({"error": "duration_minutes must be a positive number."}), 400
+        if duration < 0:
             return jsonify({"error": "duration_minutes must be a positive number."}), 400
 
     notes = data.get("notes", "")
@@ -110,4 +117,4 @@ def workout_summary():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)
