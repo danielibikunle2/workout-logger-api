@@ -1,14 +1,32 @@
+import os
+from functools import wraps
+
 from flask import Flask, request, jsonify
 import sqlite3
 from datetime import date
 
 app = Flask(__name__)
 DB_NAME = "workouts.db"
+API_KEY = os.environ.get("API_KEY")
+if not API_KEY:
+    print("WARNING: API_KEY is not set. POST/DELETE endpoints are unprotected.")
+
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not API_KEY:
+            return f(*args, **kwargs)
+        provided = request.headers.get("X-API-Key")
+        if provided != API_KEY:
+            return jsonify({"error": "Missing or invalid API key."}), 401
+        return f(*args, **kwargs)
+    return decorated
 
 
 def get_connection():
     conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row  
+    conn.row_factory = sqlite3.Row
     return conn
 
 
@@ -18,6 +36,7 @@ def home():
 
 
 @app.route("/workouts", methods=["POST"])
+@require_api_key
 def log_workout():
     data = request.get_json(silent=True)
 
@@ -80,6 +99,7 @@ def get_workouts():
 
 
 @app.route("/workouts/<int:workout_id>", methods=["DELETE"])
+@require_api_key
 def delete_workout(workout_id):
     conn = get_connection()
     cursor = conn.cursor()
@@ -117,4 +137,6 @@ def workout_summary():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get("PORT", 5001))
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
