@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Workout Logger specific
+workouts.db
+ngrok
+*.pyc
+__pycache__/
+.pytest_cache/
+venv/
+.env
+ 
